@@ -1,202 +1,336 @@
 /**
  * @file src/components/MeTab/MeTab.tsx
- * Profile and statistics tab component
+ * Profile and exercise history component
  */
 
-import { useState } from 'react'
-import Image from 'next/image'
-import { Camera } from 'lucide-react'
+'use client'
+
+import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { UserProfile, ExerciseSession, calculateBMI } from '@/lib/types'
+import {
+	Clock,
+	Flame,
+	MapPin,
+	FootprintsIcon,
+	ChevronRight,
+	ArrowLeft,
+} from 'lucide-react'
+import { BarChart, Bar, ResponsiveContainer } from 'recharts'
+import { cn } from '@/lib/utils'
 
 /**
- * Props for the exercise summary card component
+ * Types for exercise data
  */
-interface SummaryCardProps {
-	title: string
-	value: string | number
-	unit?: string
-	bgColor: string
+interface ExerciseActivity {
+	type: string
+	distance: string
+	duration: string
+	calories: string
+	time: string
+}
+
+interface ExerciseStats {
+	icon: React.ReactNode
+	label: string
+	value: string
+	unit: string
+	color: string
+	data: Array<{ name: string; value: number }>
+}
+
+interface DailyStat {
+	icon: React.ReactNode
+	label: string
+	value: string
+	unit: string
+	color: string
 }
 
 /**
- * Exercise summary card component
+ * Stats card with chart component
  */
-const SummaryCard: React.FC<SummaryCardProps> = ({
-	title,
+const StatsCard: React.FC<ExerciseStats> = ({
+	icon,
+	label,
 	value,
 	unit,
-	bgColor,
+	color,
+	data,
 }) => (
-	<Card className={`${bgColor} transition-all hover:scale-[1.02]`}>
-		<CardHeader className="pb-2">
-			<CardTitle className="text-lg font-semibold">{title}</CardTitle>
-		</CardHeader>
-		<CardContent>
-			<p className="text-2xl font-bold">
-				{value}
-				{unit && <span className="ml-1 text-lg">{unit}</span>}
-			</p>
+	<div className="flex items-center gap-4">
+		<div className={color}>{icon}</div>
+		<div className="flex-1">
+			<div className="flex items-baseline justify-between">
+				<div className="text-muted-foreground">{label}</div>
+				<ChevronRight className="h-5 w-5 text-muted-foreground" />
+			</div>
+			<div className="flex items-end gap-2">
+				<div className="text-2xl font-bold">{value}</div>
+				<div className="text-sm text-muted-foreground">{unit}</div>
+			</div>
+			<div className="mt-2 h-8">
+				<ResponsiveContainer width="100%" height="100%">
+					<BarChart data={data}>
+						<Bar
+							dataKey="value"
+							fill="currentColor"
+							className="fill-primary/20"
+							radius={[2, 2, 0, 0]}
+						/>
+					</BarChart>
+				</ResponsiveContainer>
+			</div>
+		</div>
+	</div>
+)
+
+/**
+ * Daily stats card component
+ */
+const DailyStatCard: React.FC<DailyStat> = ({
+	icon,
+	label,
+	value,
+	unit,
+	color,
+}) => (
+	<Card>
+		<CardContent className="pt-6">
+			<div className="flex flex-col items-center gap-2">
+				<div className={color}>{icon}</div>
+				<div className="text-sm text-muted-foreground">
+					{label}({unit})
+				</div>
+				<div className="text-3xl font-bold">{value}</div>
+			</div>
 		</CardContent>
 	</Card>
 )
 
 /**
- * Exercise history item component
+ * Activity record component
  */
-const ExerciseHistoryItem: React.FC<{ session: ExerciseSession }> = ({
-	session,
-}) => {
-	const formattedDate = new Intl.DateTimeFormat('en-US', {
-		dateStyle: 'medium',
-		timeStyle: 'short',
-	}).format(session.date)
-
-	return (
-		<Card className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
-			<CardContent className="p-4">
-				<p className="font-semibold">
-					{formattedDate} - {session.distance.toFixed(1)} km, {session.calories}{' '}
-					kcal, {session.steps.toLocaleString()} steps
-				</p>
-				<p className="text-muted-foreground">
-					Duration: {Math.floor(session.duration / 60)} minutes
-				</p>
-			</CardContent>
-		</Card>
-	)
-}
+const ActivityRecord: React.FC<ExerciseActivity> = ({
+	type,
+	distance,
+	duration,
+	calories,
+	time,
+}) => (
+	<div className="flex items-center gap-4 rounded-lg bg-muted/50 p-4 transition-colors hover:bg-muted/70">
+		<div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary">
+			<FootprintsIcon className="h-6 w-6 text-primary-foreground" />
+		</div>
+		<div className="flex-1">
+			<div className="flex justify-between">
+				<div className="font-medium">
+					{type} {distance}km
+				</div>
+				<div className="text-sm text-muted-foreground">{time}</div>
+			</div>
+			<div className="text-sm text-muted-foreground">
+				Duration: {duration}, Calories: {calories}Kcal
+			</div>
+		</div>
+	</div>
+)
 
 /**
- * Mock data - Replace with actual API calls
+ * Generate mock chart data
  */
-const mockProfile: UserProfile = {
-	firstName: 'John',
-	lastName: 'Doe',
-	age: 30,
-	height: 180,
-	weight: 75,
-	profilePicture: '/placeholder-avatar.png',
-}
-
-const mockSessions: ExerciseSession[] = [
-	{
-		id: '1',
-		date: new Date(),
-		duration: 2700, // 45 minutes
-		distance: 5.2,
-		steps: 7500,
-		calories: 320,
-		avgSpeed: 4.2,
-	},
-	{
-		id: '2',
-		date: new Date(Date.now() - 86400000), // Yesterday
-		duration: 2400, // 40 minutes
-		distance: 4.8,
-		steps: 6800,
-		calories: 290,
-		avgSpeed: 4.0,
-	},
-]
+const generateMockChartData = () =>
+	Array(7)
+		.fill(0)
+		.map((_, i) => ({
+			name: `Day ${i + 1}`,
+			value: Math.floor(Math.random() * 100),
+		}))
 
 /**
- * MeTab component displaying user profile and exercise history
+ * Main MeTab component
  */
 export default function MeTab() {
-	const [profile] = useState<UserProfile>(mockProfile)
-	const [sessions] = useState<ExerciseSession[]>(mockSessions)
+	// Mock data
+	const recentActivities: ExerciseActivity[] = [
+		{
+			type: 'Walking',
+			distance: '1.95',
+			duration: '00:46:56',
+			calories: '137',
+			time: '20:12',
+		},
+		{
+			type: 'Walking',
+			distance: '1.72',
+			duration: '00:41:24',
+			calories: '120',
+			time: '19:13',
+		},
+		{
+			type: 'Walking',
+			distance: '1.34',
+			duration: '00:32:18',
+			calories: '94',
+			time: '18:31',
+		},
+	]
 
-	// Calculate total statistics
-	const totalStats = sessions.reduce(
-		(acc, session) => ({
-			distance: acc.distance + session.distance,
-			steps: acc.steps + session.steps,
-			calories: acc.calories + session.calories,
-			duration: acc.duration + session.duration,
-		}),
-		{ distance: 0, steps: 0, calories: 0, duration: 0 }
-	)
+	// Memoized chart data
+	const chartData = useMemo(() => generateMockChartData(), [])
+
+	// Exercise stats configuration
+	const exerciseStats: ExerciseStats[] = [
+		{
+			icon: <Clock className="h-5 w-5" />,
+			label: 'Duration',
+			value: '2,080',
+			unit: 'Minutes',
+			color: 'text-purple-500',
+			data: chartData,
+		},
+		{
+			icon: <MapPin className="h-5 w-5" />,
+			label: 'Distance',
+			value: '81.1',
+			unit: 'kilometres',
+			color: 'text-orange-500',
+			data: chartData,
+		},
+		{
+			icon: <FootprintsIcon className="h-5 w-5" />,
+			label: 'Steps',
+			value: '195,520',
+			unit: 'steps',
+			color: 'text-blue-500',
+			data: chartData,
+		},
+		{
+			icon: <Flame className="h-5 w-5" />,
+			label: 'Calories',
+			value: '5,701',
+			unit: 'Kcal',
+			color: 'text-red-500',
+			data: chartData,
+		},
+	]
+
+	// Daily stats configuration
+	const dailyStats: DailyStat[] = [
+		{
+			icon: <Clock className="h-8 w-8" />,
+			label: 'Duration',
+			value: '0',
+			unit: 'Min',
+			color: 'text-purple-500',
+		},
+		{
+			icon: <MapPin className="h-8 w-8" />,
+			label: 'Distance',
+			value: '0',
+			unit: 'km',
+			color: 'text-orange-500',
+		},
+		{
+			icon: <Flame className="h-8 w-8" />,
+			label: 'Calories',
+			value: '0',
+			unit: 'Kcal',
+			color: 'text-red-500',
+		},
+	]
 
 	return (
-		<div className="space-y-6 p-6">
-			{/* Profile Header */}
+		<div className="space-y-6">
+			{/* Header */}
+			<div className="flex items-center gap-4">
+				<Button variant="ghost" size="icon" className="rounded-full">
+					<ArrowLeft className="h-6 w-6" />
+				</Button>
+				<h1 className="text-2xl font-bold">Sports Data Center</h1>
+			</div>
+
+			{/* Accumulated Exercise */}
 			<Card>
-				<CardContent className="p-6">
-					<div className="flex items-center space-x-6">
-						<div className="relative">
-							<Image
-								src={profile.profilePicture || '/placeholder-avatar.png'}
-								alt="Profile"
-								width={80}
-								height={80}
-								className="rounded-full"
-							/>
-							<Button
-								size="icon"
-								variant="secondary"
-								className="absolute -bottom-2 -right-2 rounded-full"
-								onClick={() => console.info('TODO: Implement photo upload')}
-							>
-								<Camera className="h-4 w-4" />
-							</Button>
-						</div>
+				<CardHeader>
+					<div className="flex items-center justify-between">
+						<CardTitle>Accumulated Exercise</CardTitle>
+						<Button variant="ghost" size="icon">
+							<ChevronRight className="h-5 w-5 text-muted-foreground" />
+						</Button>
+					</div>
+				</CardHeader>
+				<CardContent>
+					<div className="space-y-8">
 						<div>
-							<h2 className="text-2xl font-semibold">
-								{profile.firstName} {profile.lastName}
-							</h2>
-							<p className="text-muted-foreground">
-								{profile.age} years, {profile.height} cm, {profile.weight} kg
-							</p>
-							<p className="text-sm text-muted-foreground">
-								BMI: {calculateBMI(profile.height, profile.weight)}
-							</p>
+							<div className="text-4xl font-bold">2,457</div>
+							<div className="text-muted-foreground">Minutes</div>
+						</div>
+						<div className="grid grid-cols-3 gap-4">
+							<div>
+								<div className="text-2xl font-bold">6,581</div>
+								<div className="text-sm text-muted-foreground">
+									Calories(Kcal)
+								</div>
+							</div>
+							<div>
+								<div className="text-2xl font-bold">93.62</div>
+								<div className="text-sm text-muted-foreground">
+									Distance(km)
+								</div>
+							</div>
+							<div>
+								<div className="text-2xl font-bold">226,783</div>
+								<div className="text-sm text-muted-foreground">Steps</div>
+							</div>
 						</div>
 					</div>
 				</CardContent>
 			</Card>
 
-			{/* Exercise Summary */}
-			<section className="space-y-4">
-				<h3 className="text-xl font-semibold">Exercise Summary</h3>
-				<div className="grid grid-cols-2 gap-4">
-					<SummaryCard
-						title="Total Distance"
-						value={totalStats.distance.toFixed(1)}
-						unit="km"
-						bgColor="bg-blue-100 dark:bg-blue-900"
-					/>
-					<SummaryCard
-						title="Total Calories"
-						value={totalStats.calories.toLocaleString()}
-						unit="kcal"
-						bgColor="bg-green-100 dark:bg-green-900"
-					/>
-					<SummaryCard
-						title="Total Steps"
-						value={totalStats.steps.toLocaleString()}
-						bgColor="bg-yellow-100 dark:bg-yellow-900"
-					/>
-					<SummaryCard
-						title="Total Time"
-						value={`${Math.floor(totalStats.duration / 3600)}h ${Math.floor(
-							(totalStats.duration % 3600) / 60
-						)}m`}
-						bgColor="bg-purple-100 dark:bg-purple-900"
-					/>
-				</div>
-			</section>
+			{/* Today's Stats */}
+			<div className="grid grid-cols-3 gap-4">
+				{dailyStats.map((stat, index) => (
+					<DailyStatCard key={index} {...stat} />
+				))}
+			</div>
 
-			{/* Recent Exercises */}
-			<section className="space-y-4">
-				<h3 className="text-xl font-semibold">Recent Exercises</h3>
-				<div className="space-y-2">
-					{sessions.map(session => (
-						<ExerciseHistoryItem key={session.id} session={session} />
+			{/* Movement Records */}
+			<Card>
+				<CardHeader>
+					<div className="flex items-center justify-between">
+						<CardTitle>Movement Records</CardTitle>
+						<Button
+							variant="ghost"
+							className="text-sm text-muted-foreground hover:text-primary"
+						>
+							See more
+						</Button>
+					</div>
+				</CardHeader>
+				<CardContent>
+					<ScrollArea className="h-[300px] pr-4">
+						<div className="space-y-4">
+							{recentActivities.map((activity, i) => (
+								<ActivityRecord key={i} {...activity} />
+							))}
+						</div>
+					</ScrollArea>
+				</CardContent>
+			</Card>
+
+			{/* Exercise Data */}
+			<Card>
+				<CardHeader>
+					<CardTitle>Exercise Data</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-6">
+					{exerciseStats.map((stat, index) => (
+						<StatsCard key={index} {...stat} />
 					))}
-				</div>
-			</section>
+				</CardContent>
+			</Card>
 		</div>
 	)
 }
