@@ -1,220 +1,237 @@
 /**
  * @file src/components/GoalsTab/GoalsTab.tsx
- * Goals and activity tracking component
+ * Goals and activity tracking component with calendar visualization
  */
 
-import { useState, useEffect } from 'react'
-import { Calendar, Target, TrendingUp } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { DailyGoals, ActivityLevel } from '@/lib/types'
+'use client'
 
-interface ActivityCalendarProps {
-	data: ActivityLevel[]
+import { useMemo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
+import { ArrowLeft, Info } from 'lucide-react'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from '@/components/ui/tooltip'
+
+/**
+ * Activity level configuration
+ */
+type ActivityLevel = 0 | 1 | 2 | 3 | 4
+
+interface GoalProgress {
+	name: string
+	current: number
+	goal: number
+	unit: string
 }
 
 /**
- * Activity calendar grid component
+ * Generates dates for the contribution calendar
  */
-const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ data }) => {
-	const getActivityColor = (level: ActivityLevel): string => {
-		switch (level) {
-			case ActivityLevel.NONE:
-				return 'bg-gray-100 dark:bg-gray-800'
-			case ActivityLevel.LOW:
-				return 'bg-green-200 dark:bg-green-900'
-			case ActivityLevel.MEDIUM:
-				return 'bg-green-300 dark:bg-green-800'
-			case ActivityLevel.HIGH:
-				return 'bg-green-400 dark:bg-green-700'
-			case ActivityLevel.VERY_HIGH:
-				return 'bg-green-500 dark:bg-green-600'
-		}
+function generateYearDates() {
+	const dates: Date[] = []
+	const today = new Date()
+	for (let i = 364; i >= 0; i--) {
+		const date = new Date(today)
+		date.setDate(date.getDate() - i)
+		dates.push(date)
+	}
+	return dates
+}
+
+/**
+ * Mocked activity level - Replace with real data
+ */
+function getActivityLevel(date: Date): ActivityLevel {
+	// Simulate activity levels based on date
+	const dayOfWeek = date.getDay()
+	const weekOfMonth = Math.floor(date.getDate() / 7)
+	return ((dayOfWeek + weekOfMonth) % 5) as ActivityLevel
+}
+
+/**
+ * Activity calendar cell component
+ */
+const ActivityCell: React.FC<{ date: Date; level: ActivityLevel }> = ({
+	date,
+	level,
+}) => {
+	const levelColors = {
+		0: 'bg-muted hover:bg-muted/80',
+		1: 'bg-emerald-200 hover:bg-emerald-300 dark:bg-emerald-900 dark:hover:bg-emerald-800',
+		2: 'bg-emerald-300 hover:bg-emerald-400 dark:bg-emerald-800 dark:hover:bg-emerald-700',
+		3: 'bg-emerald-400 hover:bg-emerald-500 dark:bg-emerald-700 dark:hover:bg-emerald-600',
+		4: 'bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500',
 	}
 
 	return (
-		<div className="grid grid-cols-7 gap-1">
-			{data.map((level, index) => (
-				<div
-					key={index}
-					className={`h-6 w-6 rounded-sm transition-colors ${getActivityColor(level)}`}
-					title={`Activity Level: ${ActivityLevel[level]}`}
-				/>
-			))}
+		<TooltipProvider>
+			<Tooltip>
+				<TooltipTrigger>
+					<div
+						className={cn(
+							'h-3 w-3 rounded-sm transition-colors',
+							levelColors[level]
+						)}
+					/>
+				</TooltipTrigger>
+				<TooltipContent>
+					<div className="text-xs">
+						<div>
+							{date.toLocaleDateString('en-US', { dateStyle: 'medium' })}
+						</div>
+						<div>{level} activities</div>
+					</div>
+				</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	)
+}
+
+/**
+ * Progress card component
+ */
+const GoalProgressCard: React.FC<{ goal: GoalProgress }> = ({ goal }) => {
+	const progress = (goal.current / goal.goal) * 100
+
+	return (
+		<div className="space-y-2">
+			<div className="flex items-center justify-between">
+				<span className="font-medium">{goal.name}</span>
+				<span className="text-sm text-muted-foreground">
+					{goal.current.toLocaleString()} / {goal.goal.toLocaleString()}{' '}
+					{goal.unit}
+				</span>
+			</div>
+			<Progress value={progress} className="h-2" />
+			<div className="text-right text-sm text-muted-foreground">
+				{Math.round(progress)}% completed
+			</div>
 		</div>
 	)
 }
 
-interface GoalInputProps {
-	label: string
-	value: number
-	onChange: (value: number) => void
-	unit: string
-	min?: number
-	max?: number
-}
-
 /**
- * Goal input component with label and unit
- */
-const GoalInput: React.FC<GoalInputProps> = ({
-	label,
-	value,
-	onChange,
-	unit,
-	min = 0,
-	max,
-}) => (
-	<div className="space-y-2">
-		<label className="text-sm font-medium">{label}</label>
-		<div className="flex items-center space-x-2">
-			<Input
-				type="number"
-				value={value}
-				onChange={e => onChange(Number(e.target.value))}
-				min={min}
-				max={max}
-				className="w-32"
-			/>
-			<span className="text-sm text-muted-foreground">{unit}</span>
-		</div>
-	</div>
-)
-
-/**
- * GoalsTab component for managing daily goals and viewing activity history
+ * Main GoalsTab component
  */
 export default function GoalsTab() {
-	// State for daily goals
-	const [goals, setGoals] = useState<DailyGoals>({
-		steps: 5000,
-		distance: 5,
-		duration: 30,
-		calories: 300,
-	})
+	// Generate calendar data
+	const dates = useMemo(() => generateYearDates(), [])
+	const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+	const months = [
+		'Jan',
+		'Feb',
+		'Mar',
+		'Apr',
+		'May',
+		'Jun',
+		'Jul',
+		'Aug',
+		'Sep',
+		'Oct',
+		'Nov',
+		'Dec',
+	]
 
-	// Generate mock calendar data
-	const [calendarData, setCalendarData] = useState<ActivityLevel[]>([])
-
-	useEffect(() => {
-		// Generate mock activity data for the last 365 days
-		const mockData = Array.from({ length: 365 }, () =>
-			Math.floor((Math.random() * Object.keys(ActivityLevel).length) / 2)
-		)
-		setCalendarData(mockData)
-	}, [])
-
-	const handleSaveGoals = async () => {
-		try {
-			// TODO: Implement API call to save goals
-			console.info('Saving goals:', goals)
-			// Mock success message
-			console.info('Goals saved successfully')
-		} catch (error) {
-			console.error('Error saving goals:', error)
-		}
-	}
+	// Mock goals data
+	const goalsProgress: GoalProgress[] = [
+		{ name: 'Daily Steps', current: 8500, goal: 10000, unit: 'steps' },
+		{ name: 'Weekly Distance', current: 25, goal: 30, unit: 'km' },
+		{ name: 'Monthly Active Days', current: 20, goal: 25, unit: 'days' },
+	]
 
 	return (
-		<div className="space-y-6 p-6">
-			{/* Daily Goals Section */}
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center space-x-2">
-						<Target className="h-5 w-5" />
-						<span>Daily Goals</span>
-					</CardTitle>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<GoalInput
-						label="Steps Goal"
-						value={goals.steps}
-						onChange={steps => setGoals(prev => ({ ...prev, steps }))}
-						unit="steps"
-						min={1000}
-					/>
-					<GoalInput
-						label="Distance Goal"
-						value={goals.distance}
-						onChange={distance => setGoals(prev => ({ ...prev, distance }))}
-						unit="km"
-						min={0.5}
-					/>
-					<GoalInput
-						label="Duration Goal"
-						value={goals.duration}
-						onChange={duration => setGoals(prev => ({ ...prev, duration }))}
-						unit="minutes"
-						min={5}
-					/>
-					<GoalInput
-						label="Calories Goal"
-						value={goals.calories}
-						onChange={calories => setGoals(prev => ({ ...prev, calories }))}
-						unit="kcal"
-						min={100}
-					/>
-					<Button onClick={handleSaveGoals} className="mt-4 w-full">
-						Save Goals
-					</Button>
-				</CardContent>
-			</Card>
+		<div className="space-y-6 animate-in fade-in-50">
+			{/* Header */}
+			<div className="flex items-center gap-4">
+				<button
+					className="rounded-full p-2 transition-colors hover:bg-muted"
+					aria-label="Go back"
+				>
+					<ArrowLeft className="h-6 w-6" />
+				</button>
+				<h1 className="text-2xl font-bold">Goals & Progress</h1>
+			</div>
 
-			{/* Activity Calendar Section */}
+			{/* Activity Contributions */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center space-x-2">
-						<Calendar className="h-5 w-5" />
-						<span>Activity Calendar</span>
-					</CardTitle>
+					<div className="flex items-center justify-between">
+						<CardTitle>Activity Contributions</CardTitle>
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger>
+									<Info className="h-4 w-4 text-muted-foreground" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Track your daily activity levels throughout the year</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
 				</CardHeader>
 				<CardContent>
-					<ActivityCalendar data={calendarData} />
-
-					{/* Legend */}
-					<div className="mt-4 flex items-center space-x-4">
-						<span className="text-sm text-muted-foreground">
-							Activity Level:
-						</span>
-						{Object.keys(ActivityLevel)
-							.filter(key => !isNaN(Number(key)))
-							.map(level => (
-								<div key={level} className="flex items-center space-x-1">
-									<div
-										className={`h-4 w-4 rounded-sm ${
-											ActivityLevel[Number(level)] ===
-											ActivityLevel.NONE.toString()
-												? 'bg-gray-100 dark:bg-gray-800'
-												: `bg-green-${(Number(level) + 1) * 100} dark:bg-green-${
-														900 - Number(level) * 100
-													}`
-										}`}
-									/>
-									<span className="text-xs text-muted-foreground">
-										{ActivityLevel[Number(level)].toLowerCase()}
-									</span>
+					<div className="flex flex-col gap-2">
+						{/* Calendar Grid */}
+						<div className="grid-cols-53 grid gap-1">
+							{Array.from({ length: 53 }).map((_, weekIndex) => (
+								<div key={weekIndex} className="grid grid-rows-7 gap-1">
+									{weekDays.map((_, dayIndex) => {
+										const dateIndex = weekIndex * 7 + dayIndex
+										if (dateIndex >= dates.length) return null
+										const date = dates[dateIndex]
+										const level = getActivityLevel(date)
+										return (
+											<ActivityCell key={dateIndex} date={date} level={level} />
+										)
+									})}
 								</div>
 							))}
+						</div>
+
+						{/* Months Label */}
+						<div className="mt-2 flex justify-between text-xs text-muted-foreground">
+							{months.map(month => (
+								<span key={month}>{month}</span>
+							))}
+						</div>
+
+						{/* Legend */}
+						<div className="mt-4 flex items-center justify-end gap-2 text-sm text-muted-foreground">
+							<span>Less</span>
+							{[0, 1, 2, 3, 4].map(level => (
+								<div
+									key={level}
+									className={cn(
+										'h-3 w-3 rounded-sm',
+										level === 0 && 'bg-muted',
+										level === 1 && 'bg-emerald-200 dark:bg-emerald-900',
+										level === 2 && 'bg-emerald-300 dark:bg-emerald-800',
+										level === 3 && 'bg-emerald-400 dark:bg-emerald-700',
+										level === 4 && 'bg-emerald-500 dark:bg-emerald-600'
+									)}
+								/>
+							))}
+							<span>More</span>
+						</div>
 					</div>
 				</CardContent>
 			</Card>
 
-			{/* Streaks and Achievements */}
+			{/* Goals Progress */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center space-x-2">
-						<TrendingUp className="h-5 w-5" />
-						<span>Current Streaks</span>
-					</CardTitle>
+					<CardTitle>Goals Progress</CardTitle>
 				</CardHeader>
-
 				<CardContent>
-					<div className="space-y-2">
-						<p className="text-lg font-medium">🔥 5 day streak</p>
-						<p className="text-sm text-muted-foreground">
-							{"Keep going! You're building a great habit."}
-						</p>
+					<div className="space-y-6">
+						{goalsProgress.map((goal, index) => (
+							<GoalProgressCard key={index} goal={goal} />
+						))}
 					</div>
 				</CardContent>
 			</Card>
