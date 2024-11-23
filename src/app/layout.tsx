@@ -33,7 +33,7 @@ export default function RootLayout({
 				<Link
 					href={'https://forhives.fr'}
 					className={
-						'fixed bottom-0 right-0 rounded-tl bg-white/10 p-3 text-xs text-white'
+						'fixed bottom-0 right-0 rounded-tl bg-black/10 p-3 text-xs text-black'
 					}
 				>
 					Developed with ❤️ by{' '}
