@@ -1,8 +1,6 @@
 /**
  * @file src/components/MainTab/MainTab.tsx
- * Main exercise tracking and treadmill control component
  */
-
 'use client'
 
 import { useState } from 'react'
@@ -15,100 +13,27 @@ import {
 	Tooltip,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Settings, Target, Play, Pause } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { useRouter } from 'next/navigation'
 import { Toggle } from '@/components/ui/toggle'
 import { cn } from '@/lib/utils'
+import { TargetModal } from '@/components/target-modal'
 
-/**
- * Activity data type definition
- */
-interface ActivityDataPoint {
-	time: string
-	steps: number
+interface ExerciseTarget {
+	type: 'distance' | 'steps' | 'calories'
+	value: number
+	unit: string
+}
+
+interface ExerciseStats {
+	distance: number
 	calories: number
-	activity: number
+	duration: string
+	currentSpeed: number
 }
 
-/**
- * Current stats display component
- */
-interface StatDisplayProps {
-	label: string
-	value: string | number
-	unit?: string
-}
-
-const StatDisplay: React.FC<StatDisplayProps> = ({ label, value, unit }) => (
-	<div>
-		<h2 className="text-lg font-medium">{label}</h2>
-		<div className="flex items-baseline gap-1">
-			<span className="text-4xl font-bold">{value}</span>
-			{unit && <span className="text-muted-foreground">/{unit}</span>}
-		</div>
-	</div>
-)
-
-/**
- * Chart component for activity visualization
- */
-interface ActivityChartProps {
-	data: ActivityDataPoint[]
-	dataKey: keyof ActivityDataPoint
-	color?: string
-}
-
-const ActivityChart: React.FC<ActivityChartProps> = ({
-	data,
-	dataKey,
-	color = '#7c3aed',
-}) => (
-	<div className="h-[200px]">
-		<ResponsiveContainer width="100%" height="100%">
-			<LineChart data={data}>
-				<XAxis dataKey="time" stroke="#888888" fontSize={12} tickLine={false} />
-				<YAxis
-					stroke="#888888"
-					fontSize={12}
-					tickLine={false}
-					axisLine={false}
-					tickFormatter={value => `${value}`}
-				/>
-				<Tooltip
-					content={({ active, payload }) => {
-						if (active && payload && payload.length) {
-							return (
-								<div className="rounded-lg border bg-background p-2 shadow-md">
-									<div className="grid grid-cols-2 gap-2">
-										<span className="font-medium">Time:</span>
-										<span>{payload[0].payload.time}</span>
-										<span className="font-medium">{dataKey}:</span>
-										<span>{payload[0].value}</span>
-									</div>
-								</div>
-							)
-						}
-						return null
-					}}
-				/>
-				<Line
-					type="monotone"
-					dataKey={dataKey}
-					stroke={color}
-					strokeWidth={2}
-					dot={false}
-					activeDot={{ r: 4, strokeWidth: 2 }}
-				/>
-			</LineChart>
-		</ResponsiveContainer>
-	</div>
-)
-
-/**
- * Mock activity data
- */
-const activityData: ActivityDataPoint[] = [
+const activityData = [
 	{ time: '6AM', steps: 1000, calories: 100, activity: 20 },
 	{ time: '9AM', steps: 3000, calories: 250, activity: 45 },
 	{ time: '12PM', steps: 5000, calories: 400, activity: 60 },
@@ -116,46 +41,33 @@ const activityData: ActivityDataPoint[] = [
 	{ time: '6PM', steps: 8745, calories: 700, activity: 90 },
 ]
 
-/**
- * Control button component
- */
-interface ControlButtonProps {
-	icon: React.ReactNode
-	label: string
-	onClick: () => void
-	size?: 'default' | 'large'
-	variant?: 'default' | 'primary'
-}
-
-const ControlButton: React.FC<ControlButtonProps> = ({
-	icon,
-	label,
-	onClick,
-	size = 'default',
-	variant = 'default',
-}) => (
-	<button onClick={onClick} className="flex flex-col items-center gap-2">
-		<div
-			className={cn(
-				'flex items-center justify-center rounded-full transition-colors',
-				size === 'large' ? 'h-24 w-24' : 'h-16 w-16',
-				variant === 'primary'
-					? 'bg-primary text-primary-foreground hover:bg-primary/90'
-					: 'bg-muted hover:bg-muted/80'
-			)}
-		>
-			{icon}
-		</div>
-		<span className="text-sm text-muted-foreground">{label}</span>
-	</button>
-)
-
-/**
- * Main tab component
- */
 export default function MainTab() {
+	const router = useRouter()
+	const [targetModalOpen, setTargetModalOpen] = useState(false)
 	const [isRunning, setIsRunning] = useState(false)
 	const [mode, setMode] = useState<'manual' | 'automatic'>('manual')
+	const [currentTarget, setCurrentTarget] = useState<ExerciseTarget | null>(
+		null
+	)
+	const [stats, setStats] = useState<ExerciseStats>({
+		distance: 0,
+		calories: 0,
+		duration: '0:00',
+		currentSpeed: 0,
+	})
+
+	const handleTargetSet = (type: string, value: string) => {
+		const numValue = parseFloat(value)
+		if (!isNaN(numValue)) {
+			setCurrentTarget({
+				type: type as 'distance' | 'steps' | 'calories',
+				value: numValue,
+				unit:
+					type === 'distance' ? 'km' : type === 'calories' ? 'kcal' : 'steps',
+			})
+			console.info(`Target set: ${value} ${type}`)
+		}
+	}
 
 	const handleStartStop = () => {
 		setIsRunning(!isRunning)
@@ -164,24 +76,49 @@ export default function MainTab() {
 	}
 
 	const handleModeChange = (newMode: 'manual' | 'automatic') => {
-		setMode(newMode)
-		// TODO: Implement mode change logic
-		console.info(`Changing mode to ${newMode}`)
+		if (mode !== newMode) {
+			setMode(newMode)
+			// TODO: Implement actual mode change logic
+			console.info(`Changing to ${newMode} mode`)
+		}
 	}
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
 			{/* Header */}
 			<div>
-				<h1 className="text-2xl font-bold">Today's Exercise</h1>
-				<p className="text-muted-foreground">Regular Exercise #8</p>
+				<h1 className="text-2xl font-bold">{"Today's Exercise"}</h1>
+				<p className="text-muted-foreground">
+					{currentTarget
+						? `Target: ${currentTarget.value} ${currentTarget.unit}`
+						: 'No target set'}
+				</p>
 			</div>
 
 			{/* Current Stats */}
 			<div className="grid grid-cols-3 gap-6">
-				<StatDisplay label="Distance" value="0" unit="km" />
-				<StatDisplay label="Calories" value="0.0" unit="Kcal" />
-				<StatDisplay label="Duration" value="0:00" />
+				<div>
+					<h2 className="text-lg font-medium">Distance</h2>
+					<div className="flex items-baseline gap-1">
+						<span className="text-4xl font-bold">
+							{stats.distance.toFixed(2)}
+						</span>
+						<span className="text-muted-foreground">/km</span>
+					</div>
+				</div>
+				<div>
+					<h2 className="text-lg font-medium">Calories</h2>
+					<div className="flex items-baseline gap-1">
+						<span className="text-4xl font-bold">{stats.calories}</span>
+						<span className="text-muted-foreground">/Kcal</span>
+					</div>
+				</div>
+				<div>
+					<h2 className="text-lg font-medium">Duration</h2>
+					<div className="flex items-baseline gap-1">
+						<span className="text-4xl font-bold">{stats.duration}</span>
+					</div>
+				</div>
 			</div>
 
 			{/* Activity Charts */}
@@ -196,23 +133,59 @@ export default function MainTab() {
 							<TabsTrigger value="calories">Calories</TabsTrigger>
 							<TabsTrigger value="activity">Activity Time</TabsTrigger>
 						</TabsList>
-						<TabsContent value="steps">
-							<ActivityChart data={activityData} dataKey="steps" />
-						</TabsContent>
-						<TabsContent value="calories">
-							<ActivityChart
-								data={activityData}
-								dataKey="calories"
-								color="#10b981"
-							/>
-						</TabsContent>
-						<TabsContent value="activity">
-							<ActivityChart
-								data={activityData}
-								dataKey="activity"
-								color="#6366f1"
-							/>
-						</TabsContent>
+						{['steps', 'calories', 'activity'].map(type => (
+							<TabsContent key={type} value={type}>
+								<div className="h-[200px]">
+									<ResponsiveContainer width="100%" height="100%">
+										<LineChart data={activityData}>
+											<XAxis
+												dataKey="time"
+												stroke="#888888"
+												fontSize={12}
+												tickLine={false}
+											/>
+											<YAxis
+												stroke="#888888"
+												fontSize={12}
+												tickLine={false}
+												axisLine={false}
+											/>
+											<Tooltip
+												content={({ active, payload }) => {
+													if (active && payload && payload.length) {
+														return (
+															<div className="rounded-lg border bg-background p-2 shadow-md">
+																<div className="grid grid-cols-2 gap-2">
+																	<span className="font-medium">Time:</span>
+																	<span>{payload[0].payload.time}</span>
+																	<span className="font-medium">{type}:</span>
+																	<span>{payload[0].value}</span>
+																</div>
+															</div>
+														)
+													}
+													return null
+												}}
+											/>
+											<Line
+												type="monotone"
+												dataKey={type}
+												stroke={
+													type === 'steps'
+														? '#7c3aed'
+														: type === 'calories'
+															? '#10b981'
+															: '#6366f1'
+												}
+												strokeWidth={2}
+												dot={false}
+												activeDot={{ r: 4 }}
+											/>
+										</LineChart>
+									</ResponsiveContainer>
+								</div>
+							</TabsContent>
+						))}
 					</Tabs>
 				</CardContent>
 			</Card>
@@ -225,60 +198,99 @@ export default function MainTab() {
 						<Toggle
 							pressed={mode === 'manual'}
 							onPressedChange={() => handleModeChange('manual')}
-							className="text-base"
+							className={cn(
+								'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground',
+								'px-6'
+							)}
 						>
 							Manual
 						</Toggle>
 						<Toggle
 							pressed={mode === 'automatic'}
 							onPressedChange={() => handleModeChange('automatic')}
-							className="text-base"
+							className={cn(
+								'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground',
+								'px-6'
+							)}
 						>
 							Automatic
 						</Toggle>
 					</div>
 
-					{/* Treadmill Visualization */}
-					<div className="relative mx-auto h-48">
-						<div className="absolute inset-0 flex items-center justify-center">
+					{/* Current Speed Display */}
+					<div className="relative">
+						<div className="flex justify-center py-8">
 							<div className="flex h-24 w-72 items-center justify-center rounded-lg bg-muted">
-								<span className="text-2xl font-bold text-muted-foreground">
-									0.0 km/h
-								</span>
+								<div className="text-center">
+									<div className="text-3xl font-bold">
+										{stats.currentSpeed.toFixed(1)}
+										<span className="ml-1 text-xl text-muted-foreground">
+											km/h
+										</span>
+									</div>
+									<div className="text-sm text-muted-foreground">
+										Current Speed
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
 
 					{/* Control Buttons */}
 					<div className="flex items-center justify-between px-12">
-						<ControlButton
-							icon={<Target className="h-8 w-8 text-muted-foreground" />}
-							label="Choose target"
-							onClick={() => console.info('Opening target selector...')}
-						/>
+						<button
+							onClick={() => setTargetModalOpen(true)}
+							className="flex flex-col items-center gap-2"
+						>
+							<div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted transition-colors hover:bg-muted/80">
+								<Target className="h-8 w-8 text-muted-foreground" />
+							</div>
+							<span className="text-sm text-muted-foreground">
+								Choose target
+							</span>
+						</button>
 
-						<ControlButton
-							icon={
-								isRunning ? (
-									<Pause className="h-8 w-8" />
-								) : (
-									<Play className="h-8 w-8" />
-								)
-							}
-							label={isRunning ? 'Stop' : 'Start'}
+						<button
 							onClick={handleStartStop}
-							size="large"
-							variant="primary"
-						/>
+							className="flex flex-col items-center gap-2"
+						>
+							<div
+								className={cn(
+									'flex h-24 w-24 items-center justify-center rounded-full transition-colors',
+									'text-primary-foreground',
+									isRunning ? 'bg-destructive' : 'bg-primary'
+								)}
+							>
+								{isRunning ? (
+									<Pause className="h-12 w-12" />
+								) : (
+									<Play className="ml-2 h-12 w-12" />
+								)}
+							</div>
+							<span className="text-sm text-muted-foreground">
+								{isRunning ? 'Stop' : 'Start'}
+							</span>
+						</button>
 
-						<ControlButton
-							icon={<Settings className="h-8 w-8 text-muted-foreground" />}
-							label="Settings"
-							onClick={() => console.info('Opening settings...')}
-						/>
+						<button
+							onClick={() => router.push('/settings')}
+							className="flex flex-col items-center gap-2"
+						>
+							<div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted transition-colors hover:bg-muted/80">
+								<Settings className="h-8 w-8 text-muted-foreground" />
+							</div>
+							<span className="text-sm text-muted-foreground">Settings</span>
+						</button>
 					</div>
 				</div>
 			</Card>
+
+			{/* Target Modal */}
+			<TargetModal
+				open={targetModalOpen}
+				onOpenChange={setTargetModalOpen}
+				onSetTarget={handleTargetSet}
+			/>
 		</div>
 	)
 }
