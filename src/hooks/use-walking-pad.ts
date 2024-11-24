@@ -1,5 +1,5 @@
 /**
- * @file src/hooks/useWalkingPad.ts
+ * @file src/hooks/use-walking-pad.ts
  * Custom hook for managing WalkingPad state and operations
  */
 

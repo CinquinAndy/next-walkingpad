@@ -1,65 +1,80 @@
 /**
  * @file src/app/page.tsx
- * Main application component with updated design
+ * Main exercise tracking and control page
  */
-
 'use client'
 
-import { useState } from 'react'
-import { Home, User, Target } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import MainTab from '@/components/MainTab/MainTab'
-import MeTab from '@/components/MeTab/MeTab'
-import GoalsTab from '@/components/GoalsTab/GoalsTab'
+import { useEffect } from 'react'
+import { StatsDisplay } from '@/components/stats/stats-display'
+import { SpeedControl } from '@/components/controls/speed-control'
+import { ActivityChart } from '@/components/charts/activity-chart'
+import { TargetModal } from '@/components/modals/target-modal'
+import { useWalkingPadStore } from '@/store/walking-pad.store'
+import { Button } from '@/components/ui/button'
+import { Settings, Target } from 'lucide-react'
+import Link from 'next/link'
 
 /**
- * Navigation configuration
+ * Main exercise page component
+ * Displays current exercise stats, controls, and activity tracking
  */
-const navigation = [
-	{ id: 'main', icon: Home, label: 'Home' },
-	{ id: 'me', icon: User, label: 'Profile' },
-	{ id: 'goals', icon: Target, label: 'Goals' },
-] as const
+export default function ExercisePage() {
+	const { currentTarget, isLoading, error, resetState } = useWalkingPadStore()
 
-type TabId = (typeof navigation)[number]['id']
+	// Reset state when component unmounts
+	useEffect(() => {
+		return () => {
+			resetState()
+		}
+	}, [resetState])
 
-/**
- * Main application component with sidebar navigation
- */
-export default function App() {
-	const [activeTab, setActiveTab] = useState<TabId>('main')
+	// Show loading state
+	if (isLoading) {
+		return <div>Loading...</div>
+	}
+
+	// Show error state if any
+	if (error) {
+		return <div>Error: {error}</div>
+	}
 
 	return (
-		<div className="flex h-screen bg-background">
-			{/* Sidebar Navigation */}
-			<div className="flex w-16 flex-col items-center space-y-4 border-r bg-card py-4">
-				{navigation.map(({ id, icon: Icon, label }) => (
-					<button
-						key={id}
-						onClick={() => setActiveTab(id)}
-						className={cn(
-							'rounded-lg p-3 transition-colors',
-							'hover:bg-accent hover:text-accent-foreground',
-							activeTab === id
-								? 'bg-primary text-primary-foreground'
-								: 'text-muted-foreground'
-						)}
-						title={label}
-					>
-						<Icon size={20} />
-						<span className="sr-only">{label}</span>
-					</button>
-				))}
+		<main className="mx-auto max-w-4xl space-y-6 p-6">
+			{/* Header */}
+			<div>
+				<h1 className="text-2xl font-bold">Today's Exercise</h1>
+				<p className="text-muted-foreground">
+					{currentTarget
+						? `Target: ${currentTarget.value} ${currentTarget.unit}`
+						: 'No target set'}
+				</p>
 			</div>
 
-			{/* Main Content Area */}
-			<div className="flex-1 overflow-auto">
-				<div className="container mx-auto p-6">
-					{activeTab === 'main' && <MainTab />}
-					{activeTab === 'me' && <MeTab />}
-					{activeTab === 'goals' && <GoalsTab />}
-				</div>
+			{/* Current Stats */}
+			<StatsDisplay />
+
+			{/* Controls Section */}
+			<div className="grid grid-cols-3 gap-4">
+				<Button asChild variant="outline" size="lg">
+					<Link href="/settings">
+						<Settings className="mr-2 h-5 w-5" />
+						Settings
+					</Link>
+				</Button>
+
+				<SpeedControl />
+
+				<Button variant="outline" size="lg">
+					<Target className="mr-2 h-5 w-5" />
+					Set Target
+				</Button>
 			</div>
-		</div>
+
+			{/* Activity Tracking */}
+			<ActivityChart />
+
+			{/* Modals */}
+			<TargetModal />
+		</main>
 	)
 }
