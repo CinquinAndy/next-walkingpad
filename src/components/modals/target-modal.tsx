@@ -10,13 +10,19 @@ import {
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
+	DialogTrigger,
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Clock, Ruler, Flame, Footprints } from 'lucide-react'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
+import { useToast } from '@/hooks/use-toast'
 import type { TargetType } from '@/store/walking-pad.store'
+
+interface TargetModalProps {
+	children: React.ReactNode // Trigger element
+}
 
 /**
  * Target type configuration
@@ -171,15 +177,15 @@ function PresetOption({
 
 /**
  * TargetModal Component
- * Modal for setting exercise targets with presets and custom values
  */
-export function TargetModal() {
-	const [isOpen, setIsOpen] = useState(false)
+export function TargetModal({ children }: TargetModalProps) {
+	const [open, setOpen] = useState(false)
 	const [activeTab, setActiveTab] = useState<TargetType>('distance')
 	const [selectedValue, setSelectedValue] = useState<string>('')
 	const [customValue, setCustomValue] = useState<string>('')
 
-	const { setTarget } = useWalkingPadStore()
+	const { setTarget, currentTarget } = useWalkingPadStore()
+	const { toast } = useToast()
 
 	/**
 	 * Handles target confirmation
@@ -192,7 +198,11 @@ export function TargetModal() {
 				value,
 				unit: TARGET_CONFIGS[activeTab].unit,
 			})
-			setIsOpen(false)
+			toast({
+				title: 'Target Set',
+				description: `New target: ${value} ${TARGET_CONFIGS[activeTab].unit} ${activeTab}`,
+			})
+			setOpen(false)
 			resetForm()
 		}
 	}
@@ -206,12 +216,10 @@ export function TargetModal() {
 		setActiveTab('distance')
 	}
 
-	/**
-	 * @file src/components/modals/target-modal.tsx (continued)
-	 */
-
 	return (
-		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+		<Dialog open={open} onOpenChange={setOpen}>
+			<DialogTrigger asChild>{children}</DialogTrigger>
+
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle className="text-2xl">Set Exercise Target</DialogTitle>
@@ -290,7 +298,7 @@ export function TargetModal() {
 								<Button
 									variant="outline"
 									onClick={() => {
-										setIsOpen(false)
+										setOpen(false)
 										resetForm()
 									}}
 								>

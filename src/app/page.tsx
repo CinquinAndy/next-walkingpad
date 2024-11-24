@@ -1,6 +1,6 @@
 /**
  * @file src/app/page.tsx
- * Main exercise tracking and control page
+ * Main exercise tracking and control page with target functionality
  */
 'use client'
 
@@ -8,12 +8,10 @@ import { useEffect } from 'react'
 import { StatsDisplay } from '@/components/stats/stats-display'
 import { SpeedControl } from '@/components/controls/speed-control'
 import { ActivityChart } from '@/components/charts/activity-chart'
-import { TargetModal } from '@/components/modals/target-modal'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
 
 /**
  * Main exercise page component
- * Displays current exercise stats, controls, and activity tracking
  */
 export default function ExercisePage() {
 	const { currentTarget, isLoading, error, resetState } = useWalkingPadStore()
@@ -37,9 +35,11 @@ export default function ExercisePage() {
 
 	return (
 		<main className="mx-auto max-w-4xl space-y-6 p-6">
-			{/* Header */}
-			<div>
-				<h1 className="text-2xl font-bold">{"Today's Exercise"}</h1>
+			{/* Header with Target Info */}
+			<div className="flex items-center justify-between">
+				<div className="space-y-1">
+					<h1 className="text-2xl font-bold">{"Today's Exercise"}</h1>
+				</div>
 			</div>
 
 			{/* Current Stats */}
@@ -52,9 +52,6 @@ export default function ExercisePage() {
 
 			{/* Activity Tracking */}
 			<ActivityChart />
-
-			{/* Modals */}
-			<TargetModal />
 		</main>
 	)
 }

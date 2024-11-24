@@ -1,6 +1,6 @@
 /**
  * @file src/components/controls/speed-control.tsx
- * Component for controlling the walking pad speed and mode
+ * Component for controlling the walking pad speed and mode with target setting
  */
 'use client'
 
@@ -14,6 +14,7 @@ import { Pause, Play, Settings, Target } from 'lucide-react'
 import { useState } from 'react'
 import { WalkingPadMode } from '@/lib/types'
 import Link from 'next/link'
+import { TargetModal } from '@/components/modals/target-modal'
 
 /**
  * Speed presets in km/h
@@ -31,11 +32,18 @@ const MAX_SPEED = 6.0
 
 /**
  * SpeedControl Component
- * Provides controls for speed adjustment and mode selection
+ * Provides controls for speed adjustment, mode selection and target setting
  */
 export function SpeedControl() {
-	const { mode, stats, isRunning, setMode, setRunning, setStats } =
-		useWalkingPadStore()
+	const {
+		mode,
+		stats,
+		isRunning,
+		currentTarget,
+		setMode,
+		setRunning,
+		setStats,
+	} = useWalkingPadStore()
 	const [isAdjusting, setIsAdjusting] = useState(false)
 
 	/**
@@ -109,15 +117,21 @@ export function SpeedControl() {
 					</Toggle>
 				</div>
 
-				{/* Speed Display */}
-				<div className="text-center">
+				{/* Speed and Target Display */}
+				<div className="space-y-2 text-center">
 					<div className="text-3xl font-bold">
 						{stats.currentSpeed.toFixed(1)}
 						<span className="ml-1 text-xl text-muted-foreground">km/h</span>
 					</div>
-					<div className="mt-1 text-sm text-muted-foreground">
+					<div className="text-sm text-muted-foreground">
 						{isAdjusting ? 'Adjusting Speed...' : 'Current Speed'}
 					</div>
+					{currentTarget && (
+						<div className="text-sm font-medium text-primary">
+							Target: {currentTarget.value} {currentTarget.unit}{' '}
+							{currentTarget.type}
+						</div>
+					)}
 				</div>
 
 				{/* Speed Control Slider */}
@@ -167,10 +181,21 @@ export function SpeedControl() {
 					)}
 				</Button>
 			</div>
-			<Button variant="outline" size="lg">
-				<Target className="mr-2 h-5 w-5" />
-				Set Target
-			</Button>
+
+			<TargetModal>
+				<Button
+					variant="outline"
+					size="lg"
+					className={cn(
+						'relative',
+						currentTarget &&
+							'after:absolute after:-right-1 after:-top-1 after:h-2.5 after:w-2.5 after:rounded-full after:bg-primary'
+					)}
+				>
+					<Target className="mr-2 h-5 w-5" />
+					{currentTarget ? 'Change Target' : 'Set Target'}
+				</Button>
+			</TargetModal>
 		</Card>
 	)
 }
