@@ -19,7 +19,7 @@ import Link from 'next/link'
  * Speed presets in km/h
  */
 const SPEED_PRESETS = [
-	{ value: 2.0, label: 'Slow' },
+	{ value: 2.5, label: 'Slow' },
 	{ value: 3.5, label: 'Medium' },
 	{ value: 5.0, label: 'Fast' },
 ]

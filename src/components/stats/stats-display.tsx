@@ -1,94 +1,127 @@
 /**
  * @file src/components/stats/stats-display.tsx
- * Component for displaying current exercise statistics
+ * Enhanced stats display component with icons and colors
  */
 
-import { Card } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { ExerciseStats, useWalkingPadStore } from '@/store/walking-pad.store'
-import type { PadStatus, StatConfig } from '@/lib/types'
+import type { StatConfig } from '@/lib/types'
+import { Timer, Footprints, Flame, Navigation2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface StatCardProps {
-	/** Title of the stat */
 	title: string
-	/** Value to display */
 	value: string
-	/** Optional unit to display after the value */
 	unit?: string
-	/** Optional subtitle */
 	subtitle?: string
+	icon: React.ReactNode
+	className?: string
+	iconClassName?: string
 }
 
 /**
- * Individual stat card component
+ * Individual stat card component with enhanced styling
  */
-const StatCard = ({ title, value, unit, subtitle }: StatCardProps) => (
-	<Card className="p-4">
-		<h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-		<div className="mt-2 flex items-baseline">
-			<span className="text-3xl font-bold tracking-tight">{value}</span>
-			{unit && (
-				<span className="ml-1 text-sm text-muted-foreground">{unit}</span>
+const StatCard = ({
+	title,
+	value,
+	unit,
+	subtitle,
+	icon,
+	className,
+	iconClassName,
+}: StatCardProps) => (
+	<Card>
+		<CardContent
+			className={cn(
+				'flex items-start gap-4 p-6 transition-all hover:bg-muted/50',
+				className
 			)}
-		</div>
-		{subtitle && (
-			<p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-		)}
+		>
+			<div className={cn('rounded-full p-2 transition-colors', iconClassName)}>
+				{icon}
+			</div>
+			<div className="space-y-2">
+				<p className="text-sm font-medium text-muted-foreground">{title}</p>
+				<div className="flex items-baseline gap-1">
+					<span className="text-2xl font-bold tracking-tight">{value}</span>
+					{unit && (
+						<span className="text-sm text-muted-foreground">{unit}</span>
+					)}
+				</div>
+				{subtitle && (
+					<p className="text-xs text-muted-foreground">{subtitle}</p>
+				)}
+			</div>
+		</CardContent>
 	</Card>
 )
 
 /**
- * Formats duration from seconds to MM:SS format
+ * Stats configuration with icons and styling
  */
-const formatDuration = (duration: string): string => {
-	const [minutes, seconds] = duration.split(':')
-	return `${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`
-}
-
-/**
- * Stats configuration for display
- */
-const STATS_CONFIG: StatConfig[] = [
+const STATS_CONFIG: (StatConfig & {
+	icon: React.ReactNode
+	className: string
+	iconClassName: string
+})[] = [
 	{
 		key: 'distance',
 		title: 'Distance',
 		unit: 'km',
 		format: (v: number) => v.toFixed(2),
+		icon: <Navigation2 className="h-5 w-5" />,
+		className: 'hover:shadow-blue-500/20',
+		iconClassName: 'bg-blue-500/10 text-blue-500',
 	},
 	{
 		key: 'steps',
 		title: 'Steps',
 		format: (v: number) => v.toLocaleString(),
+		icon: <Footprints className="h-5 w-5" />,
+		className: 'hover:shadow-green-500/20',
+		iconClassName: 'bg-green-500/10 text-green-500',
 	},
 	{
 		key: 'calories',
 		title: 'Calories',
 		unit: 'kcal',
 		format: (v: number) => v.toLocaleString(),
+		icon: <Flame className="h-5 w-5" />,
+		className: 'hover:shadow-orange-500/20',
+		iconClassName: 'bg-orange-500/10 text-orange-500',
 	},
 	{
 		key: 'duration',
 		title: 'Duration',
-		format: (v: string) => formatDuration(v as string),
+		format: (v: string) => v,
+		icon: <Timer className="h-5 w-5" />,
+		className: 'hover:shadow-purple-500/20',
+		iconClassName: 'bg-purple-500/10 text-purple-500',
 	},
-] as const
+]
 
 /**
  * Main stats display component
- * Shows current exercise statistics in a grid layout
  */
 export function StatsDisplay() {
 	const stats = useWalkingPadStore(state => state.stats)
 
 	return (
 		<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-			{STATS_CONFIG.map(({ key, title, unit, format }) => (
-				<StatCard
-					key={key}
-					title={title}
-					value={format(stats[key as keyof ExerciseStats] as never)}
-					unit={unit}
-				/>
-			))}
+			{STATS_CONFIG.map(
+				({ key, title, unit, format, icon, className, iconClassName }) => (
+					<StatCard
+						key={key}
+						title={title}
+						value={format(stats[key as keyof ExerciseStats] as never)}
+						unit={unit}
+						icon={icon}
+						className={className}
+						iconClassName={iconClassName}
+					/>
+				)
+			)}
 		</div>
 	)
 }
