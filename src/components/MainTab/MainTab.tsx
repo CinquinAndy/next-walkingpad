@@ -5,29 +5,30 @@
 
 import { useState } from 'react'
 import {
-	LineChart,
 	Line,
+	LineChart,
 	ResponsiveContainer,
+	Tooltip,
 	XAxis,
 	YAxis,
-	Tooltip,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Settings, Target, Play, Pause } from 'lucide-react'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Pause, Play, Settings, Target } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRouter } from 'next/navigation'
 import { Toggle } from '@/components/ui/toggle'
 import { cn } from '@/lib/utils'
 import { TargetModal } from '@/components/target-modal'
 
 interface ExerciseTarget {
-	type: 'distance' | 'steps' | 'calories'
+	type: 'distance' | 'steps' | 'calories' | 'duration'
 	value: number
 	unit: string
 }
 
 interface ExerciseStats {
 	distance: number
+	steps: number
 	calories: number
 	duration: string
 	currentSpeed: number
@@ -51,6 +52,7 @@ export default function MainTab() {
 	)
 	const [stats, setStats] = useState<ExerciseStats>({
 		distance: 0,
+		steps: 0,
 		calories: 0,
 		duration: '0:00',
 		currentSpeed: 0,
@@ -60,7 +62,7 @@ export default function MainTab() {
 		const numValue = parseFloat(value)
 		if (!isNaN(numValue)) {
 			setCurrentTarget({
-				type: type as 'distance' | 'steps' | 'calories',
+				type: type as 'distance' | 'steps' | 'calories' | 'duration',
 				value: numValue,
 				unit:
 					type === 'distance' ? 'km' : type === 'calories' ? 'kcal' : 'steps',
@@ -88,15 +90,10 @@ export default function MainTab() {
 			{/* Header */}
 			<div>
 				<h1 className="text-2xl font-bold">{"Today's Exercise"}</h1>
-				<p className="text-muted-foreground">
-					{currentTarget
-						? `Target: ${currentTarget.value} ${currentTarget.unit}`
-						: 'No target set'}
-				</p>
 			</div>
 
 			{/* Current Stats */}
-			<div className="grid grid-cols-3 gap-6">
+			<div className="flex justify-between gap-4">
 				<div>
 					<h2 className="text-lg font-medium">Distance</h2>
 					<div className="flex items-baseline gap-1">
@@ -104,6 +101,12 @@ export default function MainTab() {
 							{stats.distance.toFixed(2)}
 						</span>
 						<span className="text-muted-foreground">/km</span>
+					</div>
+				</div>
+				<div>
+					<h2 className="text-lg font-medium">Steps</h2>
+					<div className="flex items-baseline gap-1">
+						<span className="text-4xl font-bold">{stats.steps}</span>
 					</div>
 				</div>
 				<div>
@@ -120,75 +123,6 @@ export default function MainTab() {
 					</div>
 				</div>
 			</div>
-
-			{/* Activity Charts */}
-			<Card>
-				<CardHeader>
-					<CardTitle>Activity Tracking</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<Tabs defaultValue="steps" className="space-y-4">
-						<TabsList className="grid w-full grid-cols-3">
-							<TabsTrigger value="steps">Steps</TabsTrigger>
-							<TabsTrigger value="calories">Calories</TabsTrigger>
-							<TabsTrigger value="activity">Activity Time</TabsTrigger>
-						</TabsList>
-						{['steps', 'calories', 'activity'].map(type => (
-							<TabsContent key={type} value={type}>
-								<div className="h-[200px]">
-									<ResponsiveContainer width="100%" height="100%">
-										<LineChart data={activityData}>
-											<XAxis
-												dataKey="time"
-												stroke="#888888"
-												fontSize={12}
-												tickLine={false}
-											/>
-											<YAxis
-												stroke="#888888"
-												fontSize={12}
-												tickLine={false}
-												axisLine={false}
-											/>
-											<Tooltip
-												content={({ active, payload }) => {
-													if (active && payload && payload.length) {
-														return (
-															<div className="rounded-lg border bg-background p-2 shadow-md">
-																<div className="grid grid-cols-2 gap-2">
-																	<span className="font-medium">Time:</span>
-																	<span>{payload[0].payload.time}</span>
-																	<span className="font-medium">{type}:</span>
-																	<span>{payload[0].value}</span>
-																</div>
-															</div>
-														)
-													}
-													return null
-												}}
-											/>
-											<Line
-												type="monotone"
-												dataKey={type}
-												stroke={
-													type === 'steps'
-														? '#7c3aed'
-														: type === 'calories'
-															? '#10b981'
-															: '#6366f1'
-												}
-												strokeWidth={2}
-												dot={false}
-												activeDot={{ r: 4 }}
-											/>
-										</LineChart>
-									</ResponsiveContainer>
-								</div>
-							</TabsContent>
-						))}
-					</Tabs>
-				</CardContent>
-			</Card>
 
 			{/* Treadmill Control */}
 			<Card className="p-6">
@@ -283,6 +217,75 @@ export default function MainTab() {
 						</button>
 					</div>
 				</div>
+			</Card>
+
+			{/* Activity Charts */}
+			<Card>
+				<CardHeader>
+					<CardTitle>Activity Tracking</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<Tabs defaultValue="steps" className="space-y-4">
+						<TabsList className="grid w-full grid-cols-3">
+							<TabsTrigger value="steps">Steps</TabsTrigger>
+							<TabsTrigger value="calories">Calories</TabsTrigger>
+							<TabsTrigger value="activity">Activity Time</TabsTrigger>
+						</TabsList>
+						{['steps', 'calories', 'activity'].map(type => (
+							<TabsContent key={type} value={type}>
+								<div className="h-[200px]">
+									<ResponsiveContainer width="100%" height="100%">
+										<LineChart data={activityData}>
+											<XAxis
+												dataKey="time"
+												stroke="#888888"
+												fontSize={12}
+												tickLine={false}
+											/>
+											<YAxis
+												stroke="#888888"
+												fontSize={12}
+												tickLine={false}
+												axisLine={false}
+											/>
+											<Tooltip
+												content={({ active, payload }) => {
+													if (active && payload && payload.length) {
+														return (
+															<div className="rounded-lg border bg-background p-2 shadow-md">
+																<div className="grid grid-cols-2 gap-2">
+																	<span className="font-medium">Time:</span>
+																	<span>{payload[0].payload.time}</span>
+																	<span className="font-medium">{type}:</span>
+																	<span>{payload[0].value}</span>
+																</div>
+															</div>
+														)
+													}
+													return null
+												}}
+											/>
+											<Line
+												type="monotone"
+												dataKey={type}
+												stroke={
+													type === 'steps'
+														? '#7c3aed'
+														: type === 'calories'
+															? '#10b981'
+															: '#6366f1'
+												}
+												strokeWidth={2}
+												dot={false}
+												activeDot={{ r: 4 }}
+											/>
+										</LineChart>
+									</ResponsiveContainer>
+								</div>
+							</TabsContent>
+						))}
+					</Tabs>
+				</CardContent>
 			</Card>
 
 			{/* Target Modal */}

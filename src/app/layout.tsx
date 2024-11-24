@@ -31,13 +31,13 @@ export default function RootLayout({
 			>
 				{children}
 				<Link
-					href={'https://forhives.fr'}
+					href={'https://andy-cinquin.com'}
 					className={
 						'fixed bottom-0 right-0 rounded-tl bg-black/10 p-3 text-xs text-black'
 					}
 				>
 					Developed with ❤️ by{' '}
-					<span className={'hover:underline'}>ForHives</span>
+					<span className={'hover:underline'}>Andy Cinquin</span>
 				</Link>
 			</body>
 		</html>
