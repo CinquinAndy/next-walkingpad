@@ -4,8 +4,8 @@
  */
 
 import { Card } from '@/components/ui/card'
-import { useWalkingPadStore } from '@/store/walking-pad.store'
-import type { ExerciseStats } from '@/store/walking-pad.store'
+import { ExerciseStats, useWalkingPadStore } from '@/store/walking-pad.store'
+import type { PadStatus, StatConfig } from '@/lib/types'
 
 interface StatCardProps {
 	/** Title of the stat */
@@ -47,21 +47,29 @@ const formatDuration = (duration: string): string => {
 /**
  * Stats configuration for display
  */
-const STATS_CONFIG = [
+const STATS_CONFIG: StatConfig[] = [
 	{
 		key: 'distance',
 		title: 'Distance',
 		unit: 'km',
 		format: (v: number) => v.toFixed(2),
 	},
-	{ key: 'steps', title: 'Steps', format: (v: number) => v.toLocaleString() },
+	{
+		key: 'steps',
+		title: 'Steps',
+		format: (v: number) => v.toLocaleString(),
+	},
 	{
 		key: 'calories',
 		title: 'Calories',
 		unit: 'kcal',
 		format: (v: number) => v.toLocaleString(),
 	},
-	{ key: 'duration', title: 'Duration', format: formatDuration },
+	{
+		key: 'duration',
+		title: 'Duration',
+		format: (v: string) => formatDuration(v as string),
+	},
 ] as const
 
 /**

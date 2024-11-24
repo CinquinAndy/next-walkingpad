@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
-import { PadStatus, WalkingPadMode } from '@/lib/types'
+import { BeltState, PadStatus, WalkingPadMode } from '@/lib/types'
 import { walkingPadService } from '@/services/walking-pad.service'
 
 interface UseWalkingPadReturn {
@@ -63,11 +63,11 @@ export function useWalkingPad(): UseWalkingPadReturn {
 	 * Poll status periodically when active
 	 */
 	useEffect(() => {
-		if (status?.belt_state === 'running') {
+		if (status?.beltState === BeltState.RUNNING) {
 			const interval = setInterval(fetchStatus, 1000)
 			return () => clearInterval(interval)
 		}
-	}, [status?.belt_state, fetchStatus])
+	}, [status?.beltState, fetchStatus])
 
 	/**
 	 * Initial status fetch

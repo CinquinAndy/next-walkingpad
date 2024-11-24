@@ -3,7 +3,7 @@
  * Service for interacting with the WalkingPad API
  */
 
-import { PadStatus, WalkingPadMode } from '@/lib/types'
+import { ApiError, PadStatus, WalkingPadMode } from '@/lib/types'
 
 /**
  * API Configuration
@@ -87,8 +87,12 @@ export class WalkingPadService {
 			})
 
 			if (!response.ok) {
+				const errorData: ApiError = await response.json().catch(() => ({
+					message: response.statusText,
+				}))
+
 				throw new WalkingPadApiError(
-					`API request failed: ${response.statusText}`,
+					errorData.message || `Request failed: ${response.statusText}`,
 					response.status
 				)
 			}
@@ -98,8 +102,11 @@ export class WalkingPadService {
 			if (error instanceof WalkingPadApiError) {
 				throw error
 			}
+
+			const errorMessage =
+				error instanceof Error ? error.message : 'Unknown error'
 			throw new WalkingPadApiError(
-				`Failed to communicate with WalkingPad API: ${error.message}`
+				`Failed to communicate with WalkingPad API: ${errorMessage}`
 			)
 		}
 	}
