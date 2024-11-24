@@ -5,6 +5,7 @@
 
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { WalkingPadMode } from '@/lib/types'
 
 /**
  * Types for exercise targets and modes
@@ -55,7 +56,7 @@ export interface ActivityDataPoint {
 interface WalkingPadState {
 	// Status
 	isRunning: boolean
-	mode: PadMode
+	mode: WalkingPadMode
 	stats: ExerciseStats
 	currentTarget: ExerciseTarget | null
 	activityData: ActivityDataPoint[]
@@ -64,7 +65,7 @@ interface WalkingPadState {
 
 	// Actions
 	setRunning: (isRunning: boolean) => void
-	setMode: (mode: PadMode) => void
+	setMode: (mode: WalkingPadMode) => Promise<void>
 	setStats: (stats: Partial<ExerciseStats>) => void
 	setTarget: (target: ExerciseTarget | null) => void
 	updateActivityData: (data: ActivityDataPoint[]) => void
@@ -100,7 +101,7 @@ export const useWalkingPadStore = create<WalkingPadState>()(
 		set => ({
 			// Initial state
 			isRunning: false,
-			mode: 'manual',
+			mode: WalkingPadMode.STANDBY,
 			stats: defaultStats,
 			currentTarget: null,
 			activityData: defaultActivityData,
@@ -110,7 +111,16 @@ export const useWalkingPadStore = create<WalkingPadState>()(
 			// Actions
 			setRunning: isRunning => set({ isRunning }),
 
-			setMode: mode => set({ mode }),
+			// Actions
+			setMode: async mode => {
+				try {
+					// TODO: Add API call here
+					set({ mode })
+				} catch (error) {
+					console.error('Failed to set mode:', error)
+					throw error
+				}
+			},
 
 			setStats: newStats =>
 				set(state => ({
@@ -128,7 +138,7 @@ export const useWalkingPadStore = create<WalkingPadState>()(
 			resetState: () =>
 				set({
 					isRunning: false,
-					mode: 'manual',
+					mode: WalkingPadMode.STANDBY,
 					stats: defaultStats,
 					currentTarget: null,
 					activityData: defaultActivityData,

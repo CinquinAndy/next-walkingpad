@@ -3,8 +3,7 @@
  * Toggle component for switching between manual and automatic modes
  */
 
-import { Moon, Sun } from 'lucide-react'
-import { useTheme } from 'next-themes'
+import { Moon, Sun, Power } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
 	DropdownMenu,
@@ -12,28 +11,24 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { WalkingPadMode } from '@/lib/types'
+import { WalkingPadMode, type ModeConfig } from '@/lib/types'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
-
-/**
- * Mode configuration type
- */
-interface ModeConfig {
-	icon: React.ReactNode
-	label: string
-	description: string
-}
 
 /**
  * Available modes configuration
  */
 const MODES: Record<WalkingPadMode, ModeConfig> = {
-	manual: {
+	[WalkingPadMode.STANDBY]: {
+		icon: <Power className="h-4 w-4" />,
+		label: 'Standby',
+		description: 'Device in standby mode',
+	},
+	[WalkingPadMode.MANUAL]: {
 		icon: <Sun className="h-4 w-4" />,
 		label: 'Manual',
 		description: 'Control speed manually',
 	},
-	automatic: {
+	[WalkingPadMode.AUTO]: {
 		icon: <Moon className="h-4 w-4" />,
 		label: 'Automatic',
 		description: 'Speed adjusts automatically',
@@ -42,22 +37,34 @@ const MODES: Record<WalkingPadMode, ModeConfig> = {
 
 /**
  * ModeToggle Component
- * Provides a dropdown menu for switching between manual and automatic modes
+ * Provides a dropdown menu for switching between operational modes
  */
 export function ModeToggle() {
 	const { mode, setMode } = useWalkingPadStore()
-	const { theme } = useTheme()
 
-	const handleModeChange = (newMode: WalkingPadMode) => {
-		setMode(newMode)
+	const handleModeChange = async (newMode: WalkingPadMode) => {
+		try {
+			await setMode(newMode)
+		} catch (error) {
+			console.error('Failed to change mode:', error)
+			// TODO: Show error toast
+		}
 	}
+
+	// Current mode configuration
+	const currentMode = MODES[mode] || MODES[WalkingPadMode.STANDBY]
 
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="outline" size="icon" className="h-9 w-9">
-					{MODES[mode].icon}
-					<span className="sr-only">Toggle mode</span>
+				<Button
+					variant="outline"
+					size="icon"
+					className="h-9 w-9"
+					title={`Current mode: ${currentMode.label}`}
+				>
+					{currentMode.icon}
+					<span className="sr-only">Change operation mode</span>
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">

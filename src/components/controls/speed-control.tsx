@@ -12,6 +12,7 @@ import { useWalkingPadStore } from '@/store/walking-pad.store'
 import { cn } from '@/lib/utils'
 import { Pause, Play } from 'lucide-react'
 import { useState } from 'react'
+import { WalkingPadMode } from '@/lib/types'
 
 /**
  * Speed presets in km/h
@@ -39,7 +40,7 @@ export function SpeedControl() {
 	/**
 	 * Handles mode change between manual and automatic
 	 */
-	const handleModeChange = (newMode: 'manual' | 'automatic') => {
+	const handleModeChange = (newMode: WalkingPadMode) => {
 		if (mode !== newMode) {
 			setMode(newMode)
 			// TODO: Implement API call
@@ -80,7 +81,7 @@ export function SpeedControl() {
 				<div className="flex justify-center gap-4">
 					<Toggle
 						pressed={mode === 'manual'}
-						onPressedChange={() => handleModeChange('manual')}
+						onPressedChange={() => handleModeChange('manual' as WalkingPadMode)}
 						className={cn(
 							'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground',
 							'px-6'
@@ -89,8 +90,8 @@ export function SpeedControl() {
 						Manual
 					</Toggle>
 					<Toggle
-						pressed={mode === 'automatic'}
-						onPressedChange={() => handleModeChange('automatic')}
+						pressed={mode === 'auto'}
+						onPressedChange={() => handleModeChange('auto' as WalkingPadMode)}
 						className={cn(
 							'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground',
 							'px-6'
@@ -120,7 +121,7 @@ export function SpeedControl() {
 						step={0.1}
 						onValueChange={handleSpeedChange}
 						onValueCommit={handleSpeedChangeComplete}
-						disabled={mode === 'automatic' || !isRunning}
+						disabled={mode === 'auto' || !isRunning}
 					/>
 
 					{/* Speed Presets */}
@@ -131,7 +132,7 @@ export function SpeedControl() {
 								variant="outline"
 								size="sm"
 								onClick={() => handleSpeedChangeComplete([preset.value])}
-								disabled={mode === 'automatic' || !isRunning}
+								disabled={mode === 'auto' || !isRunning}
 								className="flex-1"
 							>
 								{preset.label} ({preset.value} km/h)
