@@ -10,9 +10,10 @@ import { Slider } from '@/components/ui/slider'
 import { Toggle } from '@/components/ui/toggle'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
 import { cn } from '@/lib/utils'
-import { Pause, Play } from 'lucide-react'
+import { Pause, Play, Settings, Target } from 'lucide-react'
 import { useState } from 'react'
 import { WalkingPadMode } from '@/lib/types'
+import Link from 'next/link'
 
 /**
  * Speed presets in km/h
@@ -75,7 +76,14 @@ export function SpeedControl() {
 	}
 
 	return (
-		<Card className="p-6">
+		<Card className="flex w-full items-end justify-between p-6">
+			<Button asChild variant="outline" size="lg">
+				<Link href="/settings">
+					<Settings className="mr-2 h-5 w-5" />
+					Settings
+				</Link>
+			</Button>
+
 			<div className="space-y-8">
 				{/* Mode Selection */}
 				<div className="flex justify-center gap-4">
@@ -159,6 +167,10 @@ export function SpeedControl() {
 					)}
 				</Button>
 			</div>
+			<Button variant="outline" size="lg">
+				<Target className="mr-2 h-5 w-5" />
+				Set Target
+			</Button>
 		</Card>
 	)
 }
