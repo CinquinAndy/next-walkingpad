@@ -1,226 +1,136 @@
 /**
  * @file src/hooks/use-walking-pad.ts
- * Custom hook for managing WalkingPad state and operations
+ * Simplified hook for WalkingPad management
  */
 
-import { useState, useCallback, useEffect } from 'react'
-import { BeltState, PadStatus, WalkingPadMode } from '@/lib/types'
-import { walkingPadService } from '@/services/walking-pad.service'
+import { useState, useEffect } from 'react'
+import { useWalkingPadStore } from '@/store/walking-pad.store'
+import { useToast } from '@/hooks/use-toast'
+import { WalkingPadMode } from '@/lib/types'
 
-interface UseWalkingPadReturn {
-	// Status
-	status: PadStatus | null
-	isLoading: boolean
-	error: Error | null
+const API_BASE = 'http://localhost:5678/api'
+const POLL_INTERVAL = 1000 // 1 second
 
-	// Control methods
-	startWalk: () => Promise<void>
-	stopWalk: () => Promise<void>
-	setSpeed: (speed: number) => Promise<void>
-	setMode: (mode: WalkingPadMode) => Promise<void>
-	emergencyStop: () => Promise<void>
-	calibrate: () => Promise<void>
+export function useWalkingPad() {
+	const { toast } = useToast()
+	const {
+		isActive,
+		isPolling,
+		setActive,
+		setPolling,
+		setStats,
+		setError,
+		resetSession,
+	} = useWalkingPadStore()
 
-	// Settings methods
-	setPreferences: (preferences: {
-		maxSpeed?: number
-		startSpeed?: number
-		sensitivity?: 1 | 2 | 3
-		childLock?: boolean
-		unitsMiles?: boolean
-	}) => Promise<void>
-
-	// Target methods
-	setTarget: (target: { type: 0 | 1 | 2 | 3; value: number }) => Promise<void>
-}
-
-/**
- * Custom hook for managing WalkingPad operations
- * Provides status monitoring and control methods
- */
-export function useWalkingPad(): UseWalkingPadReturn {
-	const [status, setStatus] = useState<PadStatus | null>(null)
 	const [isLoading, setIsLoading] = useState(false)
-	const [error, setError] = useState<Error | null>(null)
 
 	/**
-	 * Fetch pad status
+	 * Start a new exercise session
 	 */
-	const fetchStatus = useCallback(async () => {
+	const startSession = async () => {
 		try {
 			setIsLoading(true)
-			const newStatus = await walkingPadService.getStatus()
-			setStatus(newStatus)
-			setError(null)
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Failed to fetch status'))
+
+			// Start the walking pad
+			const response = await fetch(`${API_BASE}/device/start`, {
+				method: 'POST',
+			})
+
+			if (!response.ok) throw new Error('Failed to start session')
+
+			setActive(true)
+
+			toast({
+				title: 'Session Started',
+				description: 'Exercise session has begun',
+			})
+		} catch (error) {
+			setError(error as Error)
+			toast({
+				title: 'Failed to Start',
+				description: error instanceof Error ? error.message : 'Unknown error',
+				variant: 'destructive',
+			})
+			throw error
 		} finally {
 			setIsLoading(false)
 		}
-	}, [])
+	}
 
 	/**
-	 * Poll status periodically when active
+	 * End current exercise session
+	 */
+	const endSession = async () => {
+		try {
+			setIsLoading(true)
+			setPolling(false)
+
+			// Stop the walking pad
+			await fetch(`${API_BASE}/device/stop`, {
+				method: 'POST',
+			})
+
+			// Save session data
+			await fetch(`${API_BASE}/exercise/save`, {
+				method: 'POST',
+			})
+
+			resetSession()
+
+			toast({
+				title: 'Session Ended',
+				description: 'Exercise data has been saved',
+			})
+		} catch (error) {
+			setError(error as Error)
+			toast({
+				title: 'Error',
+				description: 'Failed to end session properly',
+				variant: 'destructive',
+			})
+		} finally {
+			setIsLoading(false)
+		}
+	}
+
+	/**
+	 * Poll for device status updates
 	 */
 	useEffect(() => {
-		if (status?.beltState === BeltState.RUNNING) {
-			const interval = setInterval(fetchStatus, 1000)
-			return () => clearInterval(interval)
-		}
-	}, [status?.beltState, fetchStatus])
+		if (!isActive || !isPolling) return
 
-	/**
-	 * Initial status fetch
-	 */
-	useEffect(() => {
-		fetchStatus()
-	}, [fetchStatus])
+		const pollStatus = async () => {
+			try {
+				const response = await fetch(`${API_BASE}/device/status`)
+				if (!response.ok) throw new Error('Failed to fetch status')
 
-	/**
-	 * Start walking session
-	 */
-	const startWalk = async () => {
-		try {
-			setIsLoading(true)
-			await walkingPadService.startWalk()
-			await fetchStatus()
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Failed to start walk'))
-			throw err
-		} finally {
-			setIsLoading(false)
+				const data = await response.json()
+				setStats({
+					distance: data.distance || 0,
+					steps: data.steps || 0,
+					calories: data.calories || 0,
+					duration: data.duration || '00:00',
+					currentSpeed: data.speed || 0,
+				})
+			} catch (error) {
+				console.error('Status fetch error:', error)
+				// Don't set error state here to avoid UI disruption
+			}
 		}
-	}
 
-	/**
-	 * Stop walking session
-	 */
-	const stopWalk = async () => {
-		try {
-			setIsLoading(true)
-			await walkingPadService.finishWalk()
-			await fetchStatus()
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Failed to stop walk'))
-			throw err
-		} finally {
-			setIsLoading(false)
-		}
-	}
+		pollStatus() // Initial poll
+		const interval = setInterval(pollStatus, POLL_INTERVAL)
 
-	/**
-	 * Set walking speed
-	 */
-	const setSpeed = async (speed: number) => {
-		try {
-			setIsLoading(true)
-			await walkingPadService.setSpeed(speed)
-			await fetchStatus()
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Failed to set speed'))
-			throw err
-		} finally {
-			setIsLoading(false)
+		return () => {
+			clearInterval(interval)
 		}
-	}
-
-	/**
-	 * Set pad mode
-	 */
-	const setMode = async (mode: WalkingPadMode) => {
-		try {
-			setIsLoading(true)
-			await walkingPadService.setMode(mode)
-			await fetchStatus()
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Failed to set mode'))
-			throw err
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	/**
-	 * Emergency stop
-	 */
-	const emergencyStop = async () => {
-		try {
-			setIsLoading(true)
-			await walkingPadService.stop()
-			await fetchStatus()
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Emergency stop failed'))
-			throw err
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	/**
-	 * Set preferences
-	 */
-	const setPreferences = async (
-		preferences: Parameters<UseWalkingPadReturn['setPreferences']>[0]
-	) => {
-		try {
-			setIsLoading(true)
-			await walkingPadService.setPreferences(preferences)
-			await fetchStatus()
-		} catch (err) {
-			setError(
-				err instanceof Error ? err : new Error('Failed to set preferences')
-			)
-			throw err
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	/**
-	 * Set target
-	 */
-	const setTarget = async (
-		target: Parameters<UseWalkingPadReturn['setTarget']>[0]
-	) => {
-		try {
-			setIsLoading(true)
-			await walkingPadService.setTarget(target)
-			await fetchStatus()
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Failed to set target'))
-			throw err
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	/**
-	 * Calibrate pad
-	 */
-	const calibrate = async () => {
-		try {
-			setIsLoading(true)
-			await walkingPadService.calibrate()
-			await fetchStatus()
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Calibration failed'))
-			throw err
-		} finally {
-			setIsLoading(false)
-		}
-	}
+	}, [isActive, isPolling, setStats])
 
 	return {
-		status,
 		isLoading,
-		error,
-		startWalk,
-		stopWalk,
-		setSpeed,
-		setMode,
-		emergencyStop,
-		setPreferences,
-		setTarget,
-		calibrate,
+		startSession,
+		endSession,
+		setPolling,
 	}
 }

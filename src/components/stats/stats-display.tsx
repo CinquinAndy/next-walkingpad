@@ -4,9 +4,9 @@
  */
 
 import { Card, CardContent } from '@/components/ui/card'
-import { ExerciseStats, useWalkingPadStore } from '@/store/walking-pad.store'
+import { useWalkingPadStore } from '@/store/walking-pad.store'
 import type { StatConfig } from '@/lib/types'
-import { Timer, Footprints, Flame, Navigation2 } from 'lucide-react'
+import { Flame, Footprints, Navigation2, Timer } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface StatCardProps {
