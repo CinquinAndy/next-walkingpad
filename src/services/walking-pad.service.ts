@@ -134,6 +134,13 @@ export class WalkingPadService {
 	/**
 	 * Start walking session
 	 */
+	async startWalkSession(): Promise<void> {
+		await makeRequest('/exercise/start', { method: 'POST' })
+	}
+
+	/**
+	 * Start walking session
+	 */
 	async startWalk(speed?: number): Promise<void> {
 		const endpoint = speed
 			? `/device/start?speed=${speed * 10}`

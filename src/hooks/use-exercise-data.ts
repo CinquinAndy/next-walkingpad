@@ -100,7 +100,7 @@ export function useExerciseData() {
 	const startExercise = async () => {
 		try {
 			setIsLoading(true)
-			await walkingPadService.startWalk()
+			await walkingPadService.startWalkSession()
 			toast({
 				title: 'Exercise Started',
 				description: 'Your walking session has begun',

@@ -16,6 +16,8 @@ import { useState } from 'react'
 import { WalkingPadMode } from '@/lib/types'
 import Link from 'next/link'
 import { TargetModal } from '@/components/modals/target-modal'
+import { useToast } from '@/hooks/use-toast'
+import { useRouter } from 'next/navigation'
 
 /**
  * Speed presets in km/h
@@ -36,11 +38,30 @@ const MAX_SPEED = 6.0
  * Provides controls for speed adjustment and session management
  */
 export function SpeedControl() {
+	const router = useRouter()
+	const { toast } = useToast()
 	const { mode, stats, isRunning, currentTarget, setMode } =
 		useWalkingPadStore()
 
-	const { startExercise, endExercise, updateSpeed } = useExerciseData()
+	const { startExercise, updateSpeed } = useExerciseData()
 	const [isAdjusting, setIsAdjusting] = useState(false)
+
+	/**
+	 * Handle session start and redirect
+	 */
+	const handleStartSession = async () => {
+		try {
+			await startExercise()
+			router.push('/session')
+		} catch (error) {
+			toast({
+				title: 'Failed to Start Session',
+				description:
+					error instanceof Error ? error.message : 'Unknown error occurred',
+				variant: 'destructive',
+			})
+		}
+	}
 
 	/**
 	 * Handles mode change between manual and automatic
@@ -69,17 +90,6 @@ export function SpeedControl() {
 		updateSpeed(newSpeed[0])
 	}
 
-	/**
-	 * Handles start/stop action
-	 */
-	const handleStartStop = async () => {
-		if (isRunning) {
-			await endExercise()
-		} else {
-			await startExercise()
-		}
-	}
-
 	return (
 		<Card className="flex w-full items-end justify-between p-6">
 			<Button asChild variant="outline" size="lg">
@@ -90,92 +100,14 @@ export function SpeedControl() {
 			</Button>
 
 			<div className="space-y-8">
-				{/* Mode Selection */}
-				<div className="flex justify-center gap-4">
-					<Toggle
-						pressed={mode === WalkingPadMode.MANUAL}
-						onPressedChange={() => handleModeChange(WalkingPadMode.MANUAL)}
-						className={cn(
-							'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground',
-							'px-6'
-						)}
-					>
-						Manual
-					</Toggle>
-					<Toggle
-						pressed={mode === WalkingPadMode.AUTO}
-						onPressedChange={() => handleModeChange(WalkingPadMode.AUTO)}
-						className={cn(
-							'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground',
-							'px-6'
-						)}
-					>
-						Automatic
-					</Toggle>
-				</div>
-
-				{/* Speed and Target Display */}
-				<div className="space-y-2 text-center">
-					<div className="text-3xl font-bold">
-						{stats.currentSpeed.toFixed(1)}
-						<span className="ml-1 text-xl text-muted-foreground">km/h</span>
-					</div>
-					<div className="text-sm text-muted-foreground">
-						{isAdjusting ? 'Adjusting Speed...' : 'Current Speed'}
-					</div>
-					{currentTarget && (
-						<div className="text-sm font-medium text-primary">
-							Target: {currentTarget.value} {currentTarget.unit}{' '}
-							{currentTarget.type}
-						</div>
-					)}
-				</div>
-
-				{/* Speed Control Slider */}
-				<div className="space-y-4">
-					<Slider
-						value={[stats.currentSpeed]}
-						min={0}
-						max={MAX_SPEED}
-						step={0.1}
-						onValueChange={value => handleSpeedChange(value)}
-						onValueCommit={value => handleSpeedChangeComplete(value)}
-						disabled={mode === WalkingPadMode.AUTO || !isRunning}
-					/>
-
-					{/* Speed Presets */}
-					<div className="flex justify-between gap-2">
-						{SPEED_PRESETS.map(preset => (
-							<Button
-								key={preset.value}
-								variant="outline"
-								size="sm"
-								onClick={() => handleSpeedChangeComplete([preset.value])}
-								disabled={mode === WalkingPadMode.AUTO || !isRunning}
-								className="flex-1"
-							>
-								{preset.label} ({preset.value} km/h)
-							</Button>
-						))}
-					</div>
-				</div>
-
-				{/* Start/Stop Button */}
+				{/* Start Button - Updated to redirect */}
 				<Button
 					size="lg"
 					className="w-full"
-					onClick={handleStartStop}
-					variant={isRunning ? 'destructive' : 'default'}
+					onClick={handleStartSession}
+					disabled={isRunning}
 				>
-					{isRunning ? (
-						<>
-							<Pause className="mr-2 h-5 w-5" /> Stop
-						</>
-					) : (
-						<>
-							<Play className="mr-2 h-5 w-5" /> Start
-						</>
-					)}
+					<Play className="mr-2 h-5 w-5" /> Start Session
 				</Button>
 			</div>
 
