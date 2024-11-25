@@ -1,6 +1,6 @@
 /**
  * @file src/components/controls/speed-control.tsx
- * Component for controlling the walking pad speed and mode with target setting
+ * Updated speed control component with API integration
  */
 'use client'
 
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Toggle } from '@/components/ui/toggle'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
+import { useExerciseData } from '@/hooks/use-exercise-data'
 import { cn } from '@/lib/utils'
 import { Pause, Play, Settings, Target } from 'lucide-react'
 import { useState } from 'react'
@@ -32,28 +33,23 @@ const MAX_SPEED = 6.0
 
 /**
  * SpeedControl Component
- * Provides controls for speed adjustment, mode selection and target setting
+ * Provides controls for speed adjustment and session management
  */
 export function SpeedControl() {
-	const {
-		mode,
-		stats,
-		isRunning,
-		currentTarget,
-		setMode,
-		setRunning,
-		setStats,
-	} = useWalkingPadStore()
+	const { mode, stats, isRunning, currentTarget, setMode } =
+		useWalkingPadStore()
+
+	const { startExercise, endExercise, updateSpeed } = useExerciseData()
 	const [isAdjusting, setIsAdjusting] = useState(false)
 
 	/**
 	 * Handles mode change between manual and automatic
 	 */
-	const handleModeChange = (newMode: WalkingPadMode) => {
-		if (mode !== newMode) {
-			setMode(newMode)
-			// TODO: Implement API call
-			console.info(`Mode changed to ${newMode}`)
+	const handleModeChange = async (newMode: WalkingPadMode) => {
+		try {
+			await setMode(newMode)
+		} catch (error) {
+			console.error('Failed to change mode:', error)
 		}
 	}
 
@@ -62,7 +58,7 @@ export function SpeedControl() {
 	 */
 	const handleSpeedChange = (newSpeed: number[]) => {
 		setIsAdjusting(true)
-		setStats({ currentSpeed: newSpeed[0] })
+		updateSpeed(newSpeed[0])
 	}
 
 	/**
@@ -70,17 +66,18 @@ export function SpeedControl() {
 	 */
 	const handleSpeedChangeComplete = (newSpeed: number[]) => {
 		setIsAdjusting(false)
-		// TODO: Implement API call
-		console.info(`Speed set to ${newSpeed[0]} km/h`)
+		updateSpeed(newSpeed[0])
 	}
 
 	/**
 	 * Handles start/stop action
 	 */
 	const handleStartStop = async () => {
-		setRunning(!isRunning)
-		// TODO: Implement API call
-		console.info(`${isRunning ? 'Stopping' : 'Starting'} exercise...`)
+		if (isRunning) {
+			await endExercise()
+		} else {
+			await startExercise()
+		}
 	}
 
 	return (
@@ -96,8 +93,8 @@ export function SpeedControl() {
 				{/* Mode Selection */}
 				<div className="flex justify-center gap-4">
 					<Toggle
-						pressed={mode === 'manual'}
-						onPressedChange={() => handleModeChange('manual' as WalkingPadMode)}
+						pressed={mode === WalkingPadMode.MANUAL}
+						onPressedChange={() => handleModeChange(WalkingPadMode.MANUAL)}
 						className={cn(
 							'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground',
 							'px-6'
@@ -106,8 +103,8 @@ export function SpeedControl() {
 						Manual
 					</Toggle>
 					<Toggle
-						pressed={mode === 'auto'}
-						onPressedChange={() => handleModeChange('auto' as WalkingPadMode)}
+						pressed={mode === WalkingPadMode.AUTO}
+						onPressedChange={() => handleModeChange(WalkingPadMode.AUTO)}
 						className={cn(
 							'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground',
 							'px-6'
@@ -141,9 +138,9 @@ export function SpeedControl() {
 						min={0}
 						max={MAX_SPEED}
 						step={0.1}
-						onValueChange={handleSpeedChange}
-						onValueCommit={handleSpeedChangeComplete}
-						disabled={mode === 'auto' || !isRunning}
+						onValueChange={value => handleSpeedChange(value)}
+						onValueCommit={value => handleSpeedChangeComplete(value)}
+						disabled={mode === WalkingPadMode.AUTO || !isRunning}
 					/>
 
 					{/* Speed Presets */}
@@ -154,7 +151,7 @@ export function SpeedControl() {
 								variant="outline"
 								size="sm"
 								onClick={() => handleSpeedChangeComplete([preset.value])}
-								disabled={mode === 'auto' || !isRunning}
+								disabled={mode === WalkingPadMode.AUTO || !isRunning}
 								className="flex-1"
 							>
 								{preset.label} ({preset.value} km/h)

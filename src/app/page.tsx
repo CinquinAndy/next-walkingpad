@@ -1,6 +1,6 @@
 /**
  * @file src/app/page.tsx
- * Main exercise tracking and control page with target functionality
+ * Updated main exercise page with API integration
  */
 'use client'
 
@@ -9,12 +9,21 @@ import { StatsDisplay } from '@/components/stats/stats-display'
 import { SpeedControl } from '@/components/controls/speed-control'
 import { ActivityChart } from '@/components/charts/activity-chart'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
+import { useExerciseData } from '@/hooks/use-exercise-data'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 
 /**
  * Main exercise page component
  */
 export default function ExercisePage() {
-	const { currentTarget, isLoading, error, resetState } = useWalkingPadStore()
+	const {
+		currentTarget,
+		isLoading: storeLoading,
+		error: storeError,
+		resetState,
+	} = useWalkingPadStore()
+	const { isLoading: dataLoading, error: dataError } = useExerciseData()
 
 	// Reset state when component unmounts
 	useEffect(() => {
@@ -24,13 +33,30 @@ export default function ExercisePage() {
 	}, [resetState])
 
 	// Show loading state
-	if (isLoading) {
-		return <div>Loading...</div>
+	if (storeLoading || dataLoading) {
+		return (
+			<div className="flex h-[50vh] items-center justify-center">
+				<div className="text-center">
+					<div className="text-lg font-medium">Loading...</div>
+					<p className="text-sm text-muted-foreground">
+						Connecting to WalkingPad...
+					</p>
+				</div>
+			</div>
+		)
 	}
 
-	// Show error state if any
-	if (error) {
-		return <div>Error: {error}</div>
+	// Show error state
+	if (storeError || dataError) {
+		return (
+			<Alert variant="destructive" className="mx-auto mt-8 max-w-lg">
+				<AlertCircle className="h-4 w-4" />
+				<AlertTitle>Error</AlertTitle>
+				<AlertDescription>
+					{dataError?.message || 'Failed to connect to WalkingPad'}
+				</AlertDescription>
+			</Alert>
+		)
 	}
 
 	return (
@@ -39,6 +65,12 @@ export default function ExercisePage() {
 			<div className="flex items-center justify-between">
 				<div className="space-y-1">
 					<h1 className="text-2xl font-bold">{"Today's Exercise"}</h1>
+					{currentTarget && (
+						<p className="text-sm text-muted-foreground">
+							Target: {currentTarget.value} {currentTarget.unit}{' '}
+							{currentTarget.type}
+						</p>
+					)}
 				</div>
 			</div>
 
