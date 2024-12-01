@@ -15,10 +15,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Clock, Ruler, Flame, Footprints } from 'lucide-react'
+import { Clock, Flame, Footprints, Ruler } from 'lucide-react'
+import type { TargetType } from '@/store/walking-pad.store'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
 import { useToast } from '@/hooks/use-toast'
-import type { TargetType } from '@/store/walking-pad.store'
 
 interface TargetModalProps {
 	children: React.ReactNode // Trigger element

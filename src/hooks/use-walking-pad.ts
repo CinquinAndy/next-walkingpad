@@ -3,10 +3,9 @@
  * Simplified hook for WalkingPad management
  */
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
 import { useToast } from '@/hooks/use-toast'
-import { WalkingPadMode } from '@/lib/types'
 
 const API_BASE = 'http://localhost:5678/api'
 const POLL_INTERVAL = 1000 // 1 second

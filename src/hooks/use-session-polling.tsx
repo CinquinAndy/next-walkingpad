@@ -2,7 +2,7 @@
  * @file src/hooks/use-session-polling.ts
  * Custom hook for managing session polling
  */
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
 import { useToast } from '@/hooks/use-toast'
 import { WalkingPadMode } from '@/lib/types'

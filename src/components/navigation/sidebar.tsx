@@ -6,7 +6,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Home, Target, User, Settings } from 'lucide-react'
+import { Home, Settings, Target, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ModeToggle } from '../controls/mode-toggle'

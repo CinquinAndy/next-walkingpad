@@ -13,7 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Clock, Ruler, Flame, Footprints } from 'lucide-react'
+import { Flame, Footprints, Ruler } from 'lucide-react'
 
 interface TargetModalProps {
 	open: boolean

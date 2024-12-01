@@ -3,11 +3,13 @@
  * Enhanced exercise data hook with better error handling
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
-import { walkingPadService } from '@/services/walking-pad.service'
-import { WalkingPadApiError } from '@/services/walking-pad.service'
+import {
+	WalkingPadApiError,
+	walkingPadService,
+} from '@/services/walking-pad.service'
 
 const POLLING_INTERVAL = 1000
 const RETRY_DELAY = 5000

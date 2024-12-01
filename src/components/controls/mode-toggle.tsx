@@ -3,7 +3,7 @@
  * Toggle component for switching between manual and automatic modes
  */
 
-import { Moon, Sun, Power } from 'lucide-react'
+import { Moon, Power, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
 	DropdownMenu,
@@ -11,7 +11,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { WalkingPadMode, type ModeConfig } from '@/lib/types'
+import { type ModeConfig, WalkingPadMode } from '@/lib/types'
 import { useWalkingPadStore } from '@/store/walking-pad.store'
 
 /**

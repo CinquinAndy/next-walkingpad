@@ -5,10 +5,7 @@
 'use client'
 
 import * as React from 'react'
-import {
-	ThemeProvider as NextThemesProvider,
-	ThemeProviderProps,
-} from 'next-themes'
+import { ThemeProvider as NextThemesProvider, ThemeProviderProps } from 'next-themes'
 
 /**
  * ThemeProvider Component
